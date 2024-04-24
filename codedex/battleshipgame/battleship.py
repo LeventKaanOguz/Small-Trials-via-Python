@@ -8,6 +8,14 @@ import random
 
 board_size = 10
 
+ships = {
+    "Carrier": 5,
+    "Battleship": 4,
+    "Cruiser": 3,
+    "Submarine": 3,
+    "Destroyer": 2,
+}
+
 board1 = [["O" for x in range(board_size)] for y in range(board_size)]
 
 board2 = [["O" for x in range(board_size)] for y in range(board_size)]
@@ -29,29 +37,48 @@ def get_orientation() -> str:
     return orientation
 
 
-def place_ship(board, x, y, orientation, length) -> None:
+def test_place_ship(board, x, y, orientation, length) -> bool:
+    if x < 0 or x >= board_size or y < 0 or y >= board_size:
+        return False
+    if orientation == "horizontal":
+        if x + length > board_size:
+            return False
+        for i in range(length):
+            if board[y][x + i] == "X":
+                return False
+    elif orientation == "vertical":
+        if y + length > board_size:
+            return False
+        for i in range(length):
+            if board[y + i][x] == "X":
+                return False
+
+    return True
+
+
+def place_ship(board, x, y, orientation, length) -> list:
     if orientation == "horizontal":
         for i in range(length):
             board[y][x + i] = "X"
     elif orientation == "vertical":
         for i in range(length):
             board[y + i][x] = "X"
+    return board
 
 
-def playerboard_setup(board) -> list:
-    ships = {
-        "Carrier": 5,
-        "Battleship": 4,
-        "Cruiser": 3,
-        "Submarine": 3,
-        "Destroyer": 2,
-    }
+def playerboard_setup(board: list[list]) -> list[list]:
     for ship in ships:
-        print_board(board)
-        print("Placing the " + ship + " of length " + str(ships[ship]))
-        x, y = get_coords()
-        orientation = get_orientation()
-        place_ship(board, x, y, orientation, ships[ship])
+        while True:
+            print_board(board)
+            print("Placing the " + ship + " of length " + str(ships[ship]))
+            x, y = get_coords()
+            orientation = get_orientation()
+            if test_place_ship(board, x, y, orientation, ships[ship]) is False:
+                print("Invalid placement, try again!")
+                continue
+            else:
+                board = place_ship(board, x, y, orientation, ships[ship])
+                break
 
     return board
 
@@ -69,39 +96,36 @@ def hiddenbotboard_setup(board, hiddenplayer=[[]], x=-1, y=-1) -> list:
     else:
         hiddenplayer[y][x] = "M"
 
-    return board
+    return hiddenplayer
 
 
 def botboard_setup(board) -> list:
-    ships = {
-        "Carrier": 5,
-        "Battleship": 4,
-        "Cruiser": 3,
-        "Submarine": 3,
-        "Destroyer": 2,
-    }
     for ship in ships:
-        x = random.randint(0, 9)
-        y = random.randint(0, 9)
-        orientation = random.choice(["horizontal", "vertical"])
-        place_ship(board, x, y, orientation, ships[ship])
-
+        while True:
+            x = random.randint(0, 9)
+            y = random.randint(0, 9)
+            orientation = random.choice(["horizontal", "vertical"])
+            if test_place_ship(board, x, y, orientation, ships[ship]) is False:
+                continue
+            else:
+                board = place_ship(board, x, y, orientation, ships[ship])
+                break
     return board
 
 
 def check_loss(board) -> bool:
-    for row in board:
-        for cell in row:
-            if cell == "0":
-                return False
-    return True
+    if sum(x.count("H") for x in board) == 17:
+        return True
+    return False
 
 
-def game():
+def game() -> None:
     player1 = playerboard_setup(board1)
     hiddenplayer1 = [["0" for x in range(board_size)] for y in range(board_size)]
+    hiddenplayer1 = hiddenbotboard_setup(player1)
     player2 = botboard_setup(board2)
     hiddenplayer2 = [["0" for x in range(board_size)] for y in range(board_size)]
+    hiddenplayer2 = hiddenbotboard_setup(player2)
     player_turn = 1
     while True:
         if check_loss(hiddenplayer1):
@@ -113,13 +137,13 @@ def game():
         else:
             if player_turn == 1:
                 print("Player 1's turn")
-                hiddenplayer2 = hiddenbotboard_setup(player2)
+                print_board(hiddenplayer2)
                 x, y = get_coords()
                 hiddenplayer2 = hiddenbotboard_setup(player2, hiddenplayer2, x, y)
                 player_turn = 2
             elif player_turn == 2:
                 print("Player 2's turn")
-                hiddenplayer1 = hiddenbotboard_setup(player1)
+                print_board(hiddenplayer1)
                 x, y = random.randint(0, 9), random.randint(0, 9)
                 hiddenplayer1 = hiddenbotboard_setup(player1, hiddenplayer1, x, y)
                 player_turn = 1
@@ -139,6 +163,7 @@ def game():
         game()
     else:
         print("Thanks for playing!")
+        return None
 
     print("Thanks for playing!")
 
